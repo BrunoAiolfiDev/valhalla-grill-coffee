@@ -10,6 +10,7 @@ import {
 } from "@/lib/orders";
 import type { KitchenStatus, Order } from "@/lib/types";
 import type { Driver } from "@/lib/orders";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const nextStatusMap: Record<KitchenStatus, KitchenStatus | null> = {
   aguardando_pagamento: "pago",
@@ -113,9 +114,13 @@ function KitchenPinScreen({ onAuth }: { onAuth: () => void }) {
     <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-xs">
         <div className="mb-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-500">
-            Valhalla Grill &amp; Coffee
-          </p>
+          <BrandLogo
+            variant="yellow"
+            width={220}
+            height={64}
+            className="mx-auto"
+            priority
+          />
           <h1 className="mt-2 text-3xl font-black text-white">🍳 Kitchen</h1>
           <p className="mt-1 text-sm text-zinc-400">
             Enter your PIN to continue

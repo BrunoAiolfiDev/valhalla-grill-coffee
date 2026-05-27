@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { BrandLogo } from "@/components/BrandLogo";
 import { formatEuroFromCents, getMenuItems } from "@/lib/catalog";
 import {
   createOrder,
@@ -177,13 +178,13 @@ function AuthScreen() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-10 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-500">
-            Food Trailer · Cork, Ireland
-          </p>
-          <h1 className="display-font mt-2 text-5xl font-black text-white">
-            Valhalla Grill
-          </h1>
-          <p className="mt-1 text-sm text-zinc-400">&amp; Coffee</p>
+          <BrandLogo
+            variant="yellow"
+            width={280}
+            height={80}
+            className="mx-auto mt-2"
+            priority
+          />
         </div>
 
         {step === "main" && (
@@ -1353,19 +1354,18 @@ export default function Home() {
 
   if (!displayName) return <AuthScreen />;
 
+  const firstName = displayName.trim().split(/\s+/)[0] ?? displayName;
+
   return (
     <>
       <main className="min-h-screen bg-zinc-100 pb-32 font-sans text-zinc-900">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white shadow-sm">
-          <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
+          <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-2">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">
-                Hey, {displayName} 👋
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-500">
+                Hey, {firstName} 👋
               </p>
-              <h1 className="display-font text-2xl font-black text-zinc-900">
-                Valhalla Grill
-              </h1>
             </div>
             <div className="flex items-center gap-2">
               {user && (
@@ -1408,16 +1408,14 @@ export default function Home() {
 
         {/* Hero banner */}
         <div className="relative mx-auto max-w-2xl overflow-hidden">
-          <div className="h-36 bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-700 px-6 py-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
-              Food Trailer · Cork, Ireland
-            </p>
-            <p className="mt-1 text-2xl font-black text-white">
-              Artisan Burgers
-            </p>
-            <p className="text-sm text-zinc-300">
-              &amp; premium specialty coffee
-            </p>
+          <div className="flex h-32 items-center justify-center bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-700 px-6 py-4">
+            <BrandLogo
+              variant="yellow"
+              width={210}
+              height={60}
+              className="h-auto max-h-full w-auto"
+              priority
+            />
           </div>
         </div>
 

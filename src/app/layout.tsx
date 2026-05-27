@@ -17,6 +17,11 @@ const bodyFont = Sora({
 export const metadata: Metadata = {
   title: "Valhalla Grill & Coffee",
   description: "Pedidos online para seu food trailer favorito!",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

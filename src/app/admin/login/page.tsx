@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -36,12 +37,13 @@ export default function AdminLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 font-sans">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-500">
-            Admin Panel
-          </p>
-          <h1 className="mt-1 text-3xl font-black text-white">
-            Valhalla Grill
-          </h1>
+          <BrandLogo
+            variant="yellow"
+            width={260}
+            height={76}
+            className="mx-auto mt-1"
+            priority
+          />
         </div>
 
         <form

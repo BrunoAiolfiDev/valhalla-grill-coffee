@@ -7,6 +7,7 @@ import {
   markPaymentCollected,
 } from "@/lib/orders";
 import type { Order } from "@/lib/types";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const SESSION_KEY = "driver_authed";
 const SESSION_DRIVER_ID = "driver_id";
@@ -56,9 +57,13 @@ function PinScreen({ onAuth }: { onAuth: (id: string, name: string) => void }) {
     <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-xs">
         <div className="mb-8 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-500">
-            Valhalla Grill &amp; Coffee
-          </p>
+          <BrandLogo
+            variant="yellow"
+            width={220}
+            height={64}
+            className="mx-auto"
+            priority
+          />
           <h1 className="mt-2 text-3xl font-black text-white">
             🚗 Driver View
           </h1>
