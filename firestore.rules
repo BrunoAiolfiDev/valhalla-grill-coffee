@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Desenvolvimento: liberado para acelerar setup local.
+    // Endurecer para producao com auth + roles.
+
+    match /cardapio/{docId} {
+      allow read, write: if true;
+    }
+
+    match /pedidos/{docId} {
+      allow read, write: if true;
+    }
+
+    match /healthchecks/{docId} {
+      allow read, write: if true;
+    }
+
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /clientes/{uid} {
+      allow read, write: if true;
+    }
+  }
+}
