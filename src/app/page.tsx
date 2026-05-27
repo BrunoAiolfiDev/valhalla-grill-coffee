@@ -1410,14 +1410,11 @@ export default function Home() {
 
         {/* Hero banner */}
         <div className="relative mx-auto max-w-2xl overflow-hidden">
-          <div className="flex h-32 items-center justify-center bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-700 px-6 py-4">
-            <BrandLogo
-              variant="yellow"
-              width={210}
-              height={60}
-              className="h-auto max-h-full w-auto"
-              priority
-            />
+          <div
+            className="relative flex h-32 items-center justify-center overflow-hidden bg-black px-6 py-4 sm:h-36 md:h-40"
+            style={{ backgroundImage: "url('/bg-menu.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+          >
+            <div className="absolute inset-0 bg-black/20" />
           </div>
         </div>
 
