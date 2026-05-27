@@ -79,11 +79,13 @@ function ProductModal({
     (initial.priceCents / 100).toFixed(2),
   );
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatLabel, setNewCatLabel] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileUpload(file: File) {
+    setUploadError("");
     setUploading(true);
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
@@ -91,6 +93,10 @@ function ProductModal({
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       setForm((f) => ({ ...f, imageUrl: url }));
+    } catch {
+      setUploadError(
+        "Could not upload image. Check Firebase Storage setup and permissions.",
+      );
     } finally {
       setUploading(false);
     }
@@ -299,6 +305,12 @@ function ProductModal({
                   if (file) void handleFileUpload(file);
                 }}
               />
+
+              {uploadError && (
+                <p className="mt-2 text-xs font-semibold text-red-500">
+                  {uploadError}
+                </p>
+              )}
 
               {/* Or URL */}
               <div className="mt-3 flex items-center gap-2">
