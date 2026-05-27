@@ -81,7 +81,7 @@ function PinScreen({ onAuth }: { onAuth: (id: string, name: string) => void }) {
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             placeholder="PIN"
-            className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-center text-2xl font-black tracking-widest text-white placeholder-zinc-600 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+            className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-center text-base font-black tracking-widest text-white placeholder-zinc-600 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
           />
           {error && (
             <p className="text-center text-xs font-semibold text-red-400">

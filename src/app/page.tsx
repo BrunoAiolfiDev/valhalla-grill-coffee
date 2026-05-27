@@ -172,7 +172,7 @@ function AuthScreen() {
   }
 
   const ic =
-    "w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-sm font-medium text-white placeholder-zinc-500 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20";
+    "w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-5 py-4 text-base font-medium text-white placeholder-zinc-500 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4">
