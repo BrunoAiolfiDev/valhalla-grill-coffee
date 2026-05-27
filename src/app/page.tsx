@@ -1411,10 +1411,14 @@ export default function Home() {
         {/* Hero banner */}
         <div className="relative mx-auto max-w-2xl overflow-hidden">
           <div
-            className="relative flex h-32 items-center justify-center overflow-hidden bg-black px-6 py-4 sm:h-36 md:h-40"
-            style={{ backgroundImage: "url('/bg-menu.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+            className="relative w-full overflow-hidden bg-black"
+            style={{ aspectRatio: "1200 / 384" }}
           >
-            <div className="absolute inset-0 bg-black/20" />
+            <img
+              src="/bg-menu.jpg"
+              alt="Valhalla Grill & Coffee background"
+              className="h-full w-full object-contain object-center"
+            />
           </div>
         </div>
 
