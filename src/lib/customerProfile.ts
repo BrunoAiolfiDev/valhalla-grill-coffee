@@ -9,6 +9,7 @@ export type SavedAddress = {
 
 export type CustomerProfile = {
   displayName: string;
+  phone?: string;
   savedAddress?: SavedAddress;
 };
 

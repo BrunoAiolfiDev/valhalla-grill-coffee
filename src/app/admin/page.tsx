@@ -475,6 +475,8 @@ export default function AdminPage() {
   const [catEditInput, setCatEditInput] = useState("");
   const [addingNewCat, setAddingNewCat] = useState(false);
   const [newCatInput, setNewCatInput] = useState("");
+  const dragCatIdx = useRef<number | null>(null);
+  const dragOverCatIdx = useRef<number | null>(null);
   const [drivers, setDrivers_] = useState<Driver[]>([]);
   const [editingDriverIdx, setEditingDriverIdx] = useState<number | null>(null);
   const [driverEditName, setDriverEditName] = useState("");
@@ -971,7 +973,33 @@ export default function AdminPage() {
             </div>
             <div className="flex flex-col gap-2">
               {categories.map((cat, idx) => (
-                <div key={cat.value} className="flex items-center gap-2">
+                <div
+                  key={cat.value}
+                  className="flex items-center gap-2"
+                  draggable
+                  onDragStart={() => {
+                    dragCatIdx.current = idx;
+                  }}
+                  onDragEnter={() => {
+                    dragOverCatIdx.current = idx;
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={async () => {
+                    const from = dragCatIdx.current;
+                    const to = dragOverCatIdx.current;
+                    if (from === null || to === null || from === to) return;
+                    const reordered = [...categories];
+                    const [moved] = reordered.splice(from, 1);
+                    reordered.splice(to, 0, moved);
+                    dragCatIdx.current = null;
+                    dragOverCatIdx.current = null;
+                    await setCategories(reordered);
+                  }}
+                  onDragEnd={() => {
+                    dragCatIdx.current = null;
+                    dragOverCatIdx.current = null;
+                  }}
+                >
                   {editingCatIdx === idx ? (
                     <>
                       <input
@@ -1004,6 +1032,12 @@ export default function AdminPage() {
                     </>
                   ) : (
                     <>
+                      <span
+                        className="cursor-grab touch-none select-none pr-1 text-zinc-300 hover:text-zinc-500"
+                        title="Drag to reorder"
+                      >
+                        ⠿
+                      </span>
                       <span className="flex-1 text-sm font-semibold text-zinc-800">
                         {cat.label}
                       </span>

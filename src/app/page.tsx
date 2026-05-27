@@ -53,6 +53,16 @@ function entryTotal(entry: CartEntry) {
   return (entry.item.priceCents + extrasTotal) * entry.quantity;
 }
 
+function normalizeIrishPhone(raw: string): string | null {
+  const cleaned = raw.replace(/[^\d+]/g, "").trim();
+
+  if (/^\+353\d{9}$/.test(cleaned)) return cleaned;
+  if (/^353\d{9}$/.test(cleaned)) return `+${cleaned}`;
+  if (/^0\d{9}$/.test(cleaned)) return `+353${cleaned.slice(1)}`;
+
+  return null;
+}
+
 // ─── Auth Screen ─────────────────────────────────────────────────────────────
 function AuthScreen() {
   const {
@@ -134,7 +144,14 @@ function AuthScreen() {
     try {
       setLoading(true);
       reset();
-      await signUpWithEmail(name.trim(), email.trim(), password);
+      const createdUser = await signUpWithEmail(
+        name.trim(),
+        email.trim(),
+        password,
+      );
+      await setCustomerProfile(createdUser.uid, {
+        displayName: name.trim(),
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("email-already-in-use"))
@@ -1129,6 +1146,9 @@ export default function Home() {
   const [categoryLabels, setCategoryLabels] = useState<Record<string, string>>(
     Object.fromEntries(DEFAULT_CATEGORIES.map((c) => [c.value, c.label])),
   );
+  const [categoryOrder, setCategoryOrder] = useState<string[]>(
+    DEFAULT_CATEGORIES.map((c) => c.value),
+  );
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -1192,11 +1212,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const unsub = listenCategories((cats) =>
+    const unsub = listenCategories((cats) => {
       setCategoryLabels(
         Object.fromEntries(cats.map((c) => [c.value, c.label])),
-      ),
-    );
+      );
+      setCategoryOrder(cats.map((c) => c.value));
+    });
     return () => unsub();
   }, []);
 
@@ -1391,19 +1412,21 @@ export default function Home() {
 
             {/* Category tabs */}
             <div className="no-scrollbar flex gap-1 overflow-x-auto py-2">
-              {Object.keys(categories).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => scrollToCategory(cat)}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition ${
-                    activeCategory === cat
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-                  }`}
-                >
-                  {categoryLabels[cat] ?? cat}
-                </button>
-              ))}
+              {categoryOrder
+                .filter((cat) => categories[cat])
+                .map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => scrollToCategory(cat)}
+                    className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                      activeCategory === cat
+                        ? "bg-zinc-900 text-white"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
+                  >
+                    {categoryLabels[cat] ?? cat}
+                  </button>
+                ))}
             </div>
           </div>
         </header>
@@ -1524,70 +1547,75 @@ export default function Home() {
 
         {/* Menu sections */}
         <div className="mx-auto max-w-2xl px-4 py-6">
-          {Object.entries(categories).map(([cat, items]) => (
-            <div
-              key={cat}
-              ref={(el) => {
-                categoryRefs.current[cat] = el;
-              }}
-              className="mb-8 scroll-mt-28"
-            >
-              <h2 className="mb-4 text-lg font-black text-zinc-900">
-                {categoryLabels[cat] ?? cat}
-              </h2>
-              <div className="flex flex-col gap-3">
-                {items.map((item) => {
-                  const inCartCount = Object.values(cart)
-                    .filter((e) => e.item.id === item.id)
-                    .reduce((n, e) => n + e.quantity, 0);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() =>
-                        ordersOpen !== false && setSelectedItem(item)
-                      }
-                      disabled={ordersOpen === false}
-                      className={`flex w-full items-center gap-4 rounded-2xl bg-white p-3 text-left shadow-sm transition hover:shadow-md active:scale-[0.99] ${ordersOpen === false ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      <div className="flex-1 pr-1">
-                        <p className="font-bold leading-tight text-zinc-900">
-                          {item.name}
-                        </p>
-                        <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
-                          {item.description}
-                        </p>
-                        <p className="mt-2 font-black text-amber-600">
-                          {formatEuroFromCents(item.priceCents)}
-                        </p>
-                      </div>
-                      <div className="relative shrink-0">
-                        <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-zinc-100">
-                          {item.imageUrl ? (
-                            <Image
-                              src={item.imageUrl}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                              sizes="80px"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-3xl">
-                              🍔
+          {categoryOrder
+            .filter((cat) => categories[cat])
+            .map((cat) => {
+              const items = categories[cat];
+              return (
+                <div
+                  key={cat}
+                  ref={(el) => {
+                    categoryRefs.current[cat] = el;
+                  }}
+                  className="mb-8 scroll-mt-28"
+                >
+                  <h2 className="mb-4 text-lg font-black text-zinc-900">
+                    {categoryLabels[cat] ?? cat}
+                  </h2>
+                  <div className="flex flex-col gap-3">
+                    {items.map((item) => {
+                      const inCartCount = Object.values(cart)
+                        .filter((e) => e.item.id === item.id)
+                        .reduce((n, e) => n + e.quantity, 0);
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() =>
+                            ordersOpen !== false && setSelectedItem(item)
+                          }
+                          disabled={ordersOpen === false}
+                          className={`flex w-full items-center gap-4 rounded-2xl bg-white p-3 text-left shadow-sm transition hover:shadow-md active:scale-[0.99] ${ordersOpen === false ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <div className="flex-1 pr-1">
+                            <p className="font-bold leading-tight text-zinc-900">
+                              {item.name}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-xs text-zinc-400">
+                              {item.description}
+                            </p>
+                            <p className="mt-2 font-black text-amber-600">
+                              {formatEuroFromCents(item.priceCents)}
+                            </p>
+                          </div>
+                          <div className="relative shrink-0">
+                            <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-zinc-100">
+                              {item.imageUrl ? (
+                                <Image
+                                  src={item.imageUrl}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="80px"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center text-3xl">
+                                  🍔
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        {inCartCount > 0 && (
-                          <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-zinc-900 shadow">
-                            {inCartCount}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+                            {inCartCount > 0 && (
+                              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-zinc-900 shadow">
+                                {inCartCount}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
         </div>
 
         {feedback && (

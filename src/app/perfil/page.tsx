@@ -288,9 +288,13 @@ export default function PerfilPage() {
   const [uid, setUid] = useState<string | null>(null);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [activeTab, setActiveTab] = useState<"perfil" | "pedidos">("pedidos");
+  const [activeTab, setActiveTab] = useState<"perfil" | "pedidos">("perfil");
   const [editingAddress, setEditingAddress] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   const [displayName, setDisplayName] = useState("");
 
   // Auth guard
@@ -333,6 +337,33 @@ export default function PerfilPage() {
     },
     [uid],
   );
+
+  function normalizeIrishPhone(raw: string): string | null {
+    const cleaned = raw.replace(/[^\d+]/g, "").trim();
+    if (/^\+353\d{9}$/.test(cleaned)) return cleaned;
+    if (/^353\d{9}$/.test(cleaned)) return `+${cleaned}`;
+    if (/^0\d{9}$/.test(cleaned)) return `+353${cleaned.slice(1)}`;
+    return null;
+  }
+
+  async function handleSavePhone() {
+    if (!uid) return;
+    const normalized = normalizeIrishPhone(phoneInput);
+    if (!normalized) {
+      setPhoneError(
+        "Enter a valid Irish number (e.g. 0871234567 or +353871234567).",
+      );
+      return;
+    }
+    setSavingPhone(true);
+    try {
+      await setCustomerProfile(uid, { phone: normalized });
+      setEditingPhone(false);
+      setPhoneError("");
+    } finally {
+      setSavingPhone(false);
+    }
+  }
 
   const activeOrders = orders.filter((o) => o.kitchenStatus !== "entregue");
   const pastOrders = orders.filter((o) => o.kitchenStatus === "entregue");
@@ -383,6 +414,16 @@ export default function PerfilPage() {
         {/* Tab navigation */}
         <div className="mb-5 flex gap-1">
           <button
+            onClick={() => setActiveTab("perfil")}
+            className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition ${
+              activeTab === "perfil"
+                ? "bg-zinc-900 text-white"
+                : "bg-white border border-zinc-200 text-zinc-600 hover:border-zinc-400"
+            }`}
+          >
+            👤 Profile
+          </button>
+          <button
             onClick={() => setActiveTab("pedidos")}
             className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition ${
               activeTab === "pedidos"
@@ -396,16 +437,6 @@ export default function PerfilPage() {
                 {activeOrders.length}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setActiveTab("perfil")}
-            className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition ${
-              activeTab === "perfil"
-                ? "bg-zinc-900 text-white"
-                : "bg-white border border-zinc-200 text-zinc-600 hover:border-zinc-400"
-            }`}
-          >
-            👤 Profile
           </button>
         </div>
 
@@ -476,6 +507,69 @@ export default function PerfilPage() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Phone card */}
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  Phone Number
+                </p>
+                {!editingPhone && (
+                  <button
+                    onClick={() => {
+                      setPhoneInput(profile?.phone ?? "");
+                      setPhoneError("");
+                      setEditingPhone(true);
+                    }}
+                    className="text-xs font-bold text-amber-600 hover:text-amber-700"
+                  >
+                    {profile?.phone ? "Edit" : "+ Add"}
+                  </button>
+                )}
+              </div>
+              {!editingPhone ? (
+                profile?.phone ? (
+                  <div className="mt-3 rounded-xl bg-zinc-50 px-4 py-3 text-sm">
+                    <p className="font-semibold text-zinc-800">
+                      {profile.phone}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-zinc-400">
+                    No phone number saved.
+                  </p>
+                )
+              ) : (
+                <div className="mt-3 flex flex-col gap-2">
+                  <input
+                    autoFocus
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="e.g. 0871234567 or +353871234567"
+                    className="field-input w-full text-sm"
+                  />
+                  {phoneError && (
+                    <p className="text-xs text-red-500">{phoneError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      disabled={savingPhone}
+                      onClick={() => void handleSavePhone()}
+                      className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-black text-white disabled:opacity-50"
+                    >
+                      {savingPhone ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      onClick={() => setEditingPhone(false)}
+                      className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-bold text-zinc-600 hover:border-zinc-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Saved address card */}

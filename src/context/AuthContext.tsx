@@ -10,6 +10,7 @@ import {
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  type UserCredential,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -25,13 +26,13 @@ type AuthContextValue = {
   guestName: string | null;
   loading: boolean;
   displayName: string | null;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<User>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (
     name: string,
     email: string,
     password: string,
-  ) => Promise<void>;
+  ) => Promise<User>;
   sendPasswordReset: (email: string) => Promise<void>;
   continueAsGuest: (name: string) => void;
   logout: () => Promise<void>;
@@ -58,7 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    const cred: UserCredential = await signInWithPopup(auth, provider);
+    return cred.user;
   }
 
   async function signInWithEmail(email: string, password: string) {
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await updateProfile(cred.user, { displayName: name });
     // Force refresh so displayName propagates immediately
     setUser({ ...cred.user, displayName: name } as User);
+    return cred.user;
   }
 
   async function sendPasswordReset(email: string) {
