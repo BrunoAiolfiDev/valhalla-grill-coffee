@@ -1,4 +1,11 @@
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  setDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export type SavedAddress = {
@@ -41,4 +48,14 @@ export function listenCustomerProfile(
     }
     callback(snap.data() as CustomerProfile);
   });
+}
+
+export type CustomerWithUid = CustomerProfile & { uid: string };
+
+export async function getAllCustomers(): Promise<CustomerWithUid[]> {
+  const snap = await getDocs(collection(db, "clientes"));
+  return snap.docs.map((d) => ({
+    uid: d.id,
+    ...(d.data() as CustomerProfile),
+  }));
 }

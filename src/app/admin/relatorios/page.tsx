@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { getAllOrdersForReports } from "@/lib/orders";
+import { getAllCustomers, type CustomerWithUid } from "@/lib/customerProfile";
 import { getAllProductsAdmin } from "@/lib/adminProducts";
 import type { Order, MenuItem } from "@/lib/types";
 
@@ -27,7 +28,8 @@ type ReportTab =
   | "daily"
   | "categories"
   | "fulfillment"
-  | "drivers";
+  | "drivers"
+  | "clientes";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function fmtCurrency(cents: number): string {
@@ -1297,6 +1299,202 @@ function FulfillmentTab({ orders }: { orders: Order[] }) {
   );
 }
 
+// ─── Customers Tab ────────────────────────────────────────────────────────────
+function CustomersTab({
+  customers,
+  orders,
+}: {
+  customers: CustomerWithUid[];
+  orders: Order[];
+}) {
+  const [search, setSearch] = useState("");
+  const [expandedUid, setExpandedUid] = useState<string | null>(null);
+
+  const ordersByUid = useMemo(() => {
+    const map: Record<string, Order[]> = {};
+    for (const o of orders) {
+      if (!o.userId) continue;
+      if (!map[o.userId]) map[o.userId] = [];
+      map[o.userId].push(o);
+    }
+    return map;
+  }, [orders]);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return customers.filter(
+      (c) =>
+        (c.displayName ?? "").toLowerCase().includes(q) ||
+        (c.phone ?? "").includes(q) ||
+        (c.savedAddress?.city ?? "").toLowerCase().includes(q),
+    );
+  }, [customers, search]);
+
+  function handleExport() {
+    exportCsv(
+      "clientes.csv",
+      filtered.map((c) => [
+        c.displayName,
+        c.phone ?? "",
+        c.savedAddress?.line1 ?? "",
+        c.savedAddress?.city ?? "",
+        c.savedAddress?.eircode ?? "",
+        String((ordersByUid[c.uid] ?? []).length),
+        (
+          (ordersByUid[c.uid] ?? []).reduce((s, o) => s + o.totalCents, 0) / 100
+        ).toFixed(2),
+      ]),
+      [
+        "Nome",
+        "Telefone",
+        "Endereço",
+        "Cidade",
+        "Eircode",
+        "Pedidos",
+        "Total (€)",
+      ],
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <input
+          type="text"
+          placeholder="Buscar por nome, telefone ou cidade…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+        />
+        <button
+          onClick={handleExport}
+          className="rounded-xl bg-zinc-100 px-3 py-2.5 text-xs font-bold text-zinc-600 hover:bg-zinc-200"
+        >
+          ⬇ CSV
+        </button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <span className="text-5xl">👤</span>
+          <p className="mt-4 text-sm font-semibold text-zinc-400">
+            Nenhum cliente encontrado.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((c) => {
+            const cOrders = ordersByUid[c.uid] ?? [];
+            const totalSpent = cOrders.reduce((s, o) => s + o.totalCents, 0);
+            const isExpanded = expandedUid === c.uid;
+            return (
+              <div
+                key={c.uid}
+                className="rounded-2xl border border-zinc-200 bg-white shadow-sm"
+              >
+                <button
+                  className="w-full px-5 py-4 text-left"
+                  onClick={() => setExpandedUid(isExpanded ? null : c.uid)}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-black text-amber-700">
+                        {(c.displayName ?? "")
+                          .trim()
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase() || "?"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-zinc-900 truncate">
+                          {c.displayName ?? "(sem nome)"}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                          {c.phone && (
+                            <span className="text-xs text-zinc-500">
+                              📞 {c.phone}
+                            </span>
+                          )}
+                          {c.savedAddress?.city && (
+                            <span className="text-xs text-zinc-500">
+                              📍 {c.savedAddress.city}
+                            </span>
+                          )}
+                          {c.savedAddress?.line1 && (
+                            <span className="text-xs text-zinc-400 truncate">
+                              {c.savedAddress.line1}
+                              {c.savedAddress.eircode
+                                ? `, ${c.savedAddress.eircode}`
+                                : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-black text-zinc-900">
+                        {fmtCurrency(totalSpent)}
+                      </p>
+                      <p className="text-xs text-zinc-400">
+                        {cOrders.length} pedido{cOrders.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-zinc-100 px-5 pb-4">
+                    {cOrders.length === 0 ? (
+                      <p className="py-4 text-sm text-zinc-400">
+                        Sem pedidos registrados.
+                      </p>
+                    ) : (
+                      <div className="mt-3 space-y-2">
+                        {cOrders.map((o) => (
+                          <div
+                            key={o.id}
+                            className="rounded-xl bg-zinc-50 px-4 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="text-xs font-black text-zinc-500">
+                                  #{o.id.slice(0, 6).toUpperCase()}
+                                </p>
+                                <p className="mt-0.5 text-xs text-zinc-400">
+                                  {o.createdAtLabel}
+                                </p>
+                                <ul className="mt-1.5 space-y-0.5">
+                                  {o.items.map((item, i) => (
+                                    <li
+                                      key={i}
+                                      className="text-xs text-zinc-600"
+                                    >
+                                      {item.quantity}× {item.name}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <p className="shrink-0 font-black text-zinc-900">
+                                {fmtCurrency(o.totalCents)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Drivers Tab ──────────────────────────────────────────────────────────────
 function DriversTab({ orders }: { orders: Order[] }) {
   type DriverStat = {
@@ -1434,6 +1632,7 @@ export default function RelatoriosPage() {
   const [adminReady, setAdminReady] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<MenuItem[]>([]);
+  const [customers, setCustomers] = useState<CustomerWithUid[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("week");
   const [customFrom, setCustomFrom] = useState("");
@@ -1459,12 +1658,14 @@ export default function RelatoriosPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [ordersData, productsData] = await Promise.all([
+      const [ordersData, productsData, customersData] = await Promise.all([
         getAllOrdersForReports(),
         getAllProductsAdmin(),
+        getAllCustomers(),
       ]);
       setOrders(ordersData);
       setProducts(productsData);
+      setCustomers(customersData);
     } finally {
       setLoading(false);
     }
@@ -1508,7 +1709,8 @@ export default function RelatoriosPage() {
     { key: "daily", label: "Diário", icon: "📅" },
     { key: "categories", label: "Categorias", icon: "🏷️" },
     { key: "fulfillment", label: "Modalidade", icon: "🚗" },
-    { key: "drivers", label: "Drivers", icon: "👤" },
+    { key: "drivers", label: "Drivers", icon: "🏍️" },
+    { key: "clientes", label: "Clientes", icon: "👥" },
   ];
 
   return (
@@ -1659,6 +1861,9 @@ export default function RelatoriosPage() {
               <FulfillmentTab orders={filteredOrders} />
             )}
             {activeTab === "drivers" && <DriversTab orders={filteredOrders} />}
+            {activeTab === "clientes" && (
+              <CustomersTab customers={customers} orders={orders} />
+            )}
           </>
         )}
       </div>

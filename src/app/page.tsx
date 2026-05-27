@@ -91,7 +91,11 @@ function AuthScreen() {
     try {
       setLoading(true);
       reset();
-      await signInWithGoogle();
+      const googleUser = await signInWithGoogle();
+      // Ensure displayName is persisted in Firestore profile
+      await setCustomerProfile(googleUser.uid, {
+        displayName: googleUser.displayName ?? googleUser.email ?? "",
+      });
     } catch {
       setError("Google sign-in failed. Try another method.");
     } finally {
