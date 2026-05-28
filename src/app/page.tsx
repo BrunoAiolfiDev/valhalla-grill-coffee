@@ -543,7 +543,8 @@ function ItemModal({
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm md:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl">
+      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl"
+        style={{ maxHeight: "min(92dvh, 92vh)" }}>
         <div className="relative h-52 w-full shrink-0 overflow-hidden bg-zinc-200">
           {item.imageUrl ? (
             <Image
@@ -763,7 +764,8 @@ function CartDrawer({
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm md:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl">
+      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl"
+        style={{ maxHeight: "min(92dvh, 92vh)" }}>
         <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-5 py-4">
           <h2 className="text-xl font-black text-zinc-900">My Cart</h2>
           <button

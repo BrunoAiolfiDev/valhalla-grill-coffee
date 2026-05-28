@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
-import { getAllOrdersForReports } from "@/lib/orders";
+import { getAllOrdersForReports, getDrivers, type Driver } from "@/lib/orders";
 import { getAllCustomers, type CustomerWithUid } from "@/lib/customerProfile";
 import { getAllProductsAdmin } from "@/lib/adminProducts";
 import type { Order, MenuItem } from "@/lib/types";
@@ -1505,6 +1505,17 @@ function DriversTab({ orders }: { orders: Order[] }) {
     delivered: number;
   };
 
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+
+  useEffect(() => {
+    void getDrivers().then(setDrivers);
+  }, []);
+
+  const driverNameMap = useMemo(
+    () => Object.fromEntries(drivers.map((d) => [d.id, d.name])),
+    [drivers],
+  );
+
   const stats: DriverStat[] = useMemo(() => {
     const map: Record<string, DriverStat> = {};
     for (const order of orders) {
@@ -1512,18 +1523,20 @@ function DriversTab({ orders }: { orders: Order[] }) {
       if (!map[order.driverId])
         map[order.driverId] = {
           id: order.driverId,
-          name: order.driverId,
+          name: driverNameMap[order.driverId] ?? order.driverId,
           count: 0,
           revenue: 0,
           delivered: 0,
         };
+      map[order.driverId].name =
+        driverNameMap[order.driverId] ?? order.driverId;
       map[order.driverId].count += 1;
       map[order.driverId].revenue += order.totalCents;
       if (order.kitchenStatus === "entregue")
         map[order.driverId].delivered += 1;
     }
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
-  }, [orders]);
+  }, [orders, driverNameMap]);
 
   const maxRevenue = Math.max(...stats.map((s) => s.revenue), 1);
   const totalRevenue = stats.reduce((s, r) => s + r.revenue, 0);
