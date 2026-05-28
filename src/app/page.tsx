@@ -1143,6 +1143,7 @@ export default function Home() {
   const { displayName, user, loading: authLoading, logout } = useAuth();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [cart, setCart] = useState<CartMap>({});
+  const [cartRestored, setCartRestored] = useState(false);
   const [savedAddress, setSavedAddress] = useState<SavedAddress | null>(null);
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("burgers");
@@ -1194,6 +1195,7 @@ export default function Home() {
         } catch {
           // ignore malformed data
         }
+        setCartRestored(true);
         return;
       }
 
@@ -1225,6 +1227,7 @@ export default function Home() {
       } catch {
         // ignore malformed data
       }
+      setCartRestored(true);
     });
   }, []);
 
@@ -1244,8 +1247,9 @@ export default function Home() {
     return () => unsub();
   }, [user?.uid]);
 
-  // Persist cart to localStorage on every change
+  // Persist cart to localStorage on every change (only after initial restore)
   useEffect(() => {
+    if (!cartRestored) return;
     if (Object.keys(cart).length === 0) {
       localStorage.removeItem("valhalla_cart");
       return;
@@ -1258,7 +1262,7 @@ export default function Home() {
       addedExtras: e.addedExtras,
     }));
     localStorage.setItem("valhalla_cart", JSON.stringify(data));
-  }, [cart]);
+  }, [cart, cartRestored]);
 
   useEffect(() => {
     const unsub = listenOrdersOpen((open) => setOrdersOpenState(open));
