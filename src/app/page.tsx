@@ -543,8 +543,10 @@ function ItemModal({
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm md:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl"
-        style={{ maxHeight: "min(92dvh, 92vh)" }}>
+      <div
+        className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl"
+        style={{ maxHeight: "min(92dvh, 92vh)" }}
+      >
         <div className="relative h-52 w-full shrink-0 overflow-hidden bg-zinc-200">
           {item.imageUrl ? (
             <Image
@@ -764,8 +766,10 @@ function CartDrawer({
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm md:items-center"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl"
-        style={{ maxHeight: "min(92dvh, 92vh)" }}>
+      <div
+        className="flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white md:rounded-3xl"
+        style={{ maxHeight: "min(92dvh, 92vh)" }}
+      >
         <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-5 py-4">
           <h2 className="text-xl font-black text-zinc-900">My Cart</h2>
           <button
@@ -1160,30 +1164,63 @@ export default function Home() {
   useEffect(() => {
     void getMenuItems().then((items) => {
       setMenu(items);
-      const raw = localStorage.getItem("valhalla_reorder");
-      if (!raw) return;
-      localStorage.removeItem("valhalla_reorder");
+
+      // Reorder flow takes priority over persisted cart
+      const reorderRaw = localStorage.getItem("valhalla_reorder");
+      if (reorderRaw) {
+        localStorage.removeItem("valhalla_reorder");
+        try {
+          const orderItems = JSON.parse(reorderRaw) as Array<{
+            id: string;
+            quantity: number;
+            removedIngredients?: string[];
+            addedExtras?: { id: string; name: string; priceCents: number }[];
+          }>;
+          const newCart: CartMap = {};
+          for (const oi of orderItems) {
+            const menuItem = items.find((m) => m.id === oi.id);
+            if (!menuItem) continue;
+            newCart[crypto.randomUUID()] = {
+              item: menuItem,
+              quantity: oi.quantity,
+              removedIngredients: oi.removedIngredients ?? [],
+              addedExtras: oi.addedExtras ?? [],
+            };
+          }
+          if (Object.keys(newCart).length > 0) {
+            setCart(newCart);
+            setShowCart(true);
+          }
+        } catch {
+          // ignore malformed data
+        }
+        return;
+      }
+
+      // Restore persisted cart (survives page refresh)
+      const cartRaw = localStorage.getItem("valhalla_cart");
+      if (!cartRaw) return;
       try {
-        const orderItems = JSON.parse(raw) as Array<{
+        const saved = JSON.parse(cartRaw) as Array<{
+          key: string;
           id: string;
           quantity: number;
           removedIngredients?: string[];
           addedExtras?: { id: string; name: string; priceCents: number }[];
         }>;
         const newCart: CartMap = {};
-        for (const oi of orderItems) {
-          const menuItem = items.find((m) => m.id === oi.id);
+        for (const entry of saved) {
+          const menuItem = items.find((m) => m.id === entry.id);
           if (!menuItem) continue;
-          newCart[crypto.randomUUID()] = {
+          newCart[entry.key] = {
             item: menuItem,
-            quantity: oi.quantity,
-            removedIngredients: oi.removedIngredients ?? [],
-            addedExtras: oi.addedExtras ?? [],
+            quantity: entry.quantity,
+            removedIngredients: entry.removedIngredients ?? [],
+            addedExtras: entry.addedExtras ?? [],
           };
         }
         if (Object.keys(newCart).length > 0) {
           setCart(newCart);
-          setShowCart(true);
         }
       } catch {
         // ignore malformed data
@@ -1206,6 +1243,22 @@ export default function Home() {
     );
     return () => unsub();
   }, [user?.uid]);
+
+  // Persist cart to localStorage on every change
+  useEffect(() => {
+    if (Object.keys(cart).length === 0) {
+      localStorage.removeItem("valhalla_cart");
+      return;
+    }
+    const data = Object.entries(cart).map(([key, e]) => ({
+      key,
+      id: e.item.id,
+      quantity: e.quantity,
+      removedIngredients: e.removedIngredients,
+      addedExtras: e.addedExtras,
+    }));
+    localStorage.setItem("valhalla_cart", JSON.stringify(data));
+  }, [cart]);
 
   useEffect(() => {
     const unsub = listenOrdersOpen((open) => setOrdersOpenState(open));
@@ -1345,6 +1398,7 @@ export default function Home() {
       ) {
         // Entrega: pula Stripe, marca como pago direto e vai para confirmação
         await markOrderOnDelivery(orderId);
+        localStorage.removeItem("valhalla_cart");
         window.location.href = `/sucesso?orderId=${orderId}`;
         return;
       }
@@ -1362,6 +1416,7 @@ export default function Home() {
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url)
         throw new Error(data.error ?? "Error opening checkout.");
+      localStorage.removeItem("valhalla_cart");
       window.location.href = data.url;
     } catch (err) {
       setFeedback(err instanceof Error ? err.message : "Checkout error.");
